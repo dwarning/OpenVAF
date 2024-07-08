@@ -10,7 +10,7 @@ use mir::builder::InstBuilder;
 use mir::cursor::{Cursor, FuncCursor};
 use mir::{
     strip_optbarrier, Block, ControlFlowGraph, DominatorTree, Inst, KnownDerivatives, Unknown,
-    Value, FALSE, F_ONE, F_ZERO, TRUE,
+    Value, FALSE, F_ZERO, TRUE,
 };
 use mir_autodiff::auto_diff;
 use typed_index_collections::TiVec;
@@ -118,7 +118,7 @@ impl<'a> Builder<'a> {
     /// Return a list of all parameters that read from one of the simulation
     /// unknowns and therefore need to be considered during matrix construction.
     /// These need to be conrtsucted from the list of parameters instead of the list
-    /// of sim unknowns because voltage probes access to node voltages at the same time:
+    /// of sim unknowns because voltage probes access two node voltages at the same time:
     ///
     /// V(x, y) = V(x) - V(y)
     ///
@@ -473,19 +473,27 @@ impl<'a> Builder<'a> {
         contrib: &Contribution,
         hi: SimUnknownKind,
         lo: Option<SimUnknownKind>,
-        mfactor: Value,
+        is_current: bool,
     ) {
         let hi = self.ensure_unknown(hi);
         let lo = lo.map(|lo| self.ensure_unknown(lo));
+        let mfactor = self
+            .intern
+            .ensure_param(&mut self.cursor, ParamKind::ParamSysFun(ParamSysFun::mfactor));
         self.system.noise_sources.extend(contrib.noise.iter().map(|src| {
-            let factor = match (mfactor, src.factor) {
-                (F_ONE, fac) | (fac, F_ONE) => fac,
-                (mfactor, mut factor) => {
-                    update_optbarrier(self.cursor.func, &mut factor, |val, cursor| {
-                        cursor.ins().fmul(mfactor, val)
-                    });
-                    factor
-                }
+            let mut ofactor = src.factor;
+            let factor = if is_current {
+                // multiply power by mfactor for noise current (flow)
+                update_optbarrier(self.cursor.func, &mut ofactor, |val, cursor| {
+                    cursor.ins().fmul(mfactor, val)
+                });
+                ofactor
+            } else {
+                // divide power by mfactor for noise voltage (potential)
+                update_optbarrier(self.cursor.func, &mut ofactor, |val, cursor| {
+                    cursor.ins().fdiv(val, mfactor)
+                });
+                ofactor
             };
             NoiseSource { name: src.name, kind: src.kind.clone(), hi, lo, factor }
         }))
@@ -499,18 +507,14 @@ impl<'a> Builder<'a> {
         if let Some(lo) = lo {
             get_residual!(self, lo).add_contribution(contrib, &mut self.cursor, true);
         }
-        // TODO(perf): avoid mfactor for internal nodes?
-        let mfactor = self
-            .intern
-            .ensure_param(&mut self.cursor, ParamKind::ParamSysFun(ParamSysFun::mfactor));
-        self.add_noise(contrib, hi, lo, mfactor);
+        self.add_noise(contrib, hi, lo, true);
     }
 
     fn add_source_equation(&mut self, contrib: &Contribution, eq_val: Value, dst: BranchWrite) {
         let residual = get_residual!(self, SimUnknownKind::Current(dst.into()));
         residual.add_contribution(contrib, &mut self.cursor, false);
         residual.add(&mut self.cursor, true, contrib.unknown.unwrap());
-        self.add_noise(contrib, SimUnknownKind::Current(dst.into()), None, F_ONE);
+        self.add_noise(contrib, SimUnknownKind::Current(dst.into()), None, false);
         let (hi, lo) = dst.nodes(self.db);
         let hi = SimUnknownKind::KirchoffLaw(hi);
         let lo = lo.map(SimUnknownKind::KirchoffLaw);
