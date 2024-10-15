@@ -10,7 +10,7 @@
 
 ## About this repository
 
-This project is a fork of the ingenious work of **Pascal Kuthe [website](https://github.com/pascalkuthe/OpenVAF)**.
+This project is a fork of the ingenious work of **Pascal Kuthe [github](https://github.com/pascalkuthe/OpenVAF)**.
 
 OpenVAF is a Verilog-A compiler that can compile Verilog-A files for use in circuit simulator.
 The major aim of this Project is to provide a high-quality standard compliant compiler for Verilog-A.
@@ -24,12 +24,12 @@ Some highlights of OpenVAF include:
 * **fast simulations** surpassing existing solutions by 30%-60%, often matching handwritten models
 * IDE aware design
 
-Detailed documentation, examples and precompiled binaries of all release are **available on our [website](https://openvaf.semimod.de)**.
+Detailed documentation, examples and precompiled binaries of all release are **available on the [website](https://openvaf.semimod.de)**.
 
 ## Projects
 
 The development of OpenVAF and related tools is tightly coupled and therefore happens in a single repository.
-This repository currently contains the following useable projects:
+The work in this fork is focussed to following project:
 
 ### OpenVAF
 
@@ -99,7 +99,7 @@ Build LLVM and Clang, download [LLVM 16.0.6](https://github.com/llvm/llvm-projec
 Unpack the sources. This creates directory `llvm-project-llvmorg-16.0.6`. Create a directory named `build` in parallel.
 
 Start Visual Studio x64 native command prompt.
-Run CMake, using nmake as build system (default). Alternativ Ninja build system is possible by given switch `-G ninja'.
+Run CMake, using nmake as build system (default). Alternativ Ninja build system is possible by given switch `-G ninja`.
 Replace `c:\llvm` with the path where you want your LLVM and Clang binaries and libraries to be installed.
 ```
 cmake -S llvm-project-llvmorg-16.0.6\llvm -B build -DCMAKE_INSTALL_PREFIX=C:\LLVM -DCMAKE_BUILD_TYPE=Release -DLLVM_TARGETS_TO_BUILD="X86;ARM;AArch64" -DLLVM_ENABLE_PROJECTS="llvm;clang"
@@ -160,7 +160,7 @@ cargo clippy # check the sourcecode for errors/warnings without building (even f
 ## Download binaries and usage OpenVAF
 
 You can download binaries for Linux and Windows [here](https://github.com/dwarning/OpenVAF/releases/tag/v1.0).
-OpenVAF needs a linker. On Linux at most linke is part of the operating system - on windows you need the MS linker `link.exe`.
+OpenVAF needs a linker. On Linux at most linker is part of the operating system - on windows you need the MS linker `link.exe` - see section `Prerequisite under Windows`.
 
 ``` shell
 openvaf your_verilog-a-model.va
